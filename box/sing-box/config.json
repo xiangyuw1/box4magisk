@@ -9,31 +9,25 @@
     "servers": [
       {
         "tag": "cloudflare",
-        "address": "https://1.1.1.1/dns-query",
+        "type": "https",
+        "server": "1.1.1.1",
         "detour": "Proxy"
       },
       {
         "tag": "ali",
-        "address": "https://223.6.6.6/dns-query",
-        "detour": "direct"
+        "type": "https",
+        "server": "223.6.6.6"
       },
       {
         "tag": "remote",
-        "address": "fakeip"
-      },
-      {
-        "tag": "block",
-        "address": "rcode://success"
+        "type": "fakeip",
+        "inet4_range": "198.18.0.0/15",
+        "inet6_range": "fc00::/18"
       }
     ],
     "rules": [
       {
-        "outbound": "any",
-        "server": "ali"
-      },
-      {
         "clash_mode": "Direct",
-        "action": "route",
         "server": "ali"
       },
       {
@@ -41,7 +35,6 @@
           "alibaba",
           "category-games@cn"
         ],
-        "action": "route",
         "server": "ali"
       },
       {
@@ -59,15 +52,12 @@
             ]
           }
         ],
-        "action": "route-options",
-        "server": "block",
-        "disable_cache": true
+        "action": "reject"
       },
       {
         "rule_set": [
           "cn-domain"
         ],
-        "action": "route",
         "server": "ali"
       },
       {
@@ -75,16 +65,9 @@
           "A",
           "AAAA"
         ],
-        "action": "route",
         "server": "remote"
       }
     ],
-    "fakeip": {
-      "enabled": true,
-      "inet4_range": "198.18.0.0/15",
-      "inet6_range": "fc00::/18"
-    },
-    "independent_cache": true,
     "strategy": "prefer_ipv4"
   },
   "inbounds": [
@@ -163,6 +146,7 @@
     }
   ],
   "route": {
+    "default_domain_resolver": "ali",
     "rule_set": [
       {
         "tag": "openai",
@@ -183,8 +167,8 @@
       {
         "tag": "AWAvenue-Ads",
         "type": "remote",
-        "format": "binary",
-        "url": "https://raw.githubusercontent.com/TG-Twilight/AWAvenue-Ads-Rule/main/Filters/AWAvenue-Ads-Rule-Singbox.srs",
+        "format": "source",
+        "url": "https://raw.githubusercontent.com/TG-Twilight/AWAvenue-Ads-Rule/main/Filters/AWAvenue-Ads-Rule-Singbox.json",
         "download_detour": "Proxy",
         "update_interval": "24h"
       },
@@ -336,7 +320,7 @@
     },
     "clash_api": {
       "default_mode": "Rule",
-      "external_controller": "0.0.0.0:9999",
+      "external_controller": "127.0.0.1:9090",
       "secret": "singbox",
       "external_ui": "ui"
     }

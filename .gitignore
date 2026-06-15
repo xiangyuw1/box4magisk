@@ -4,3 +4,4 @@ webroot/
 *.zip
 .omo/
 *.log
+*.self.json
