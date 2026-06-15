@@ -10,6 +10,7 @@ const PROXY_MODE_OPTIONS = [
   { l: '自动', v: '0' },
   { l: 'TPROXY', v: '1' },
   { l: 'REDIRECT', v: '2' },
+  { l: 'CORE (仅核心)', v: 'core' },
 ];
 
 const BIN_NAME_OPTIONS = ['sing-box', 'clash', 'mihomo', 'xray', 'v2ray', 'hysteria'];
@@ -20,6 +21,8 @@ const formatProxyMode = (value: unknown) => {
       return 'TPROXY';
     case '2':
       return 'REDIRECT';
+    case 'core':
+      return 'CORE';
     default:
       return 'AUTO';
   }
@@ -147,7 +150,7 @@ export function DashboardPage({ status, config, handleServiceAction, actionLoadi
             onChange={(value: string) => handleChangeMode(value as any)}
             border={true}
           />
-          <SelectRow label="切换代理模式" value={String(config?.PROXY_MODE ?? 0)} options={PROXY_MODE_OPTIONS} onChange={(value: string) => handleChange('PROXY_MODE', parseInt(value, 10))} border={true} />
+          <SelectRow label="切换代理模式" value={String(config?.PROXY_MODE ?? 0)} options={PROXY_MODE_OPTIONS} onChange={(value: string) => handleChange('PROXY_MODE', value === 'core' ? 'core' : parseInt(value, 10))} border={true} />
           <SelectRow label="切换代理核心" value={config?.bin_name || 'sing-box'} options={BIN_NAME_OPTIONS} onChange={(value: string) => handleChange('bin_name', value)} border={true} />
           <SwitchRow label="开机自启动" sub="设备启动时自动运行" checked={status?.autoStart === true} onChange={handleToggleAutoStart} border={true} />
           <SwitchRow label="拦截 QUIC" sub="防止应用通过 QUIC 绕过分流规则" checked={config?.BLOCK_QUIC === 1} onChange={(value: boolean) => handleToggle('BLOCK_QUIC', value)} border={false} />

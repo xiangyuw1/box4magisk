@@ -31,7 +31,6 @@ const TOGGLE_KEYS = new Set([
 ]);
 
 const NUMERIC_KEYS = new Set([
-  'PROXY_MODE',
   'PROXY_IPV6',
   'DNS_HIJACK_ENABLE',
   'PROXY_TCP_PORT',
@@ -150,6 +149,9 @@ export function useBoxController(): BoxControllerState {
         const value = newConfig[key];
         if (TOGGLE_KEYS.has(key)) {
           await boxBridge.toggle(key, value as 0 | 1);
+        } else if (key === 'PROXY_MODE') {
+          // PROXY_MODE can be numeric (0, 1, 2) or string ("core")
+          await boxBridge.setConfig(key, String(value));
         } else if (NUMERIC_KEYS.has(key)) {
           if (typeof value === 'string' || typeof value === 'number') {
             await boxBridge.setNumber(key, value);

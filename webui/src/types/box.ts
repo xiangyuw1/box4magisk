@@ -30,7 +30,7 @@ export interface BoxConfig {
   CORE_USER_GROUP?: string;
   ROUTING_MARK?: string;
   FORCE_MARK_BYPASS?: number;
-  PROXY_MODE?: number;
+  PROXY_MODE?: number | string;
   PERFORMANCE_MODE?: number;
   PROXY_TCP_PORT?: string;
   PROXY_UDP_PORT?: string;
