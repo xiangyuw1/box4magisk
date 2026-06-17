@@ -16,7 +16,8 @@
       {
         "tag": "ali",
         "type": "https",
-        "server": "223.6.6.6"
+        "server": "223.6.6.6",
+        "detour": "direct"
       },
       {
         "tag": "remote",
