@@ -341,7 +341,23 @@ tun_forward_enable() {
 
     # create_tun_link
     probe_tun_index && tun_forward_ip_rules "add"
-    probe_tun_device && tun_forward_iptables_rules "-I" && sing_tun_ip_rules "add" && log Info "tun hotspot support is enabled."
+    if probe_tun_device && tun_forward_iptables_rules "-I"; then
+        log Info "tun hotspot support is enabled."
+        # In core mode, skip sing_tun_ip_rules to avoid routing loop with sing-box auto_route
+        _tpm=$(grep '^PROXY_MODE=' "${scripts_dir}/tproxy.conf" 2>/dev/null | cut -d= -f2 | tr -d "'" | tr -d '"')
+        case "$_tpm" in
+            0|1|2)
+                sing_tun_ip_rules "add"
+                ;;
+            *)
+                log Info "Core mode: skipping sing_tun_ip_rules (sing-box auto_route handles routing)"
+                # Add ip rule to bypass TUN for sing-box outbound traffic (routing_mark=100)
+                ip rule add fwmark 100 lookup wlan0 pref 5000 2>/dev/null
+                ip -6 rule add fwmark 100 lookup wlan0 pref 5000 2>/dev/null
+                log Info "Added routing_mark bypass rules for sing-box outbound"
+                ;;
+        esac
+    fi
     return 0
 }
 
@@ -350,6 +366,9 @@ tun_forward_disable() {
     sing_tun_ip_rules "del" >> /dev/null 2>&1
     tun_forward_ip_rules_del >> /dev/null 2>&1
     tun_forward_iptables_rules "-D" >> /dev/null 2>&1
+    # Clean up routing_mark bypass rules
+    ip rule del fwmark 100 lookup wlan0 pref 5000 2>/dev/null
+    ip -6 rule del fwmark 100 lookup wlan0 pref 5000 2>/dev/null
     log Warn "tun hotspot support is disabled."
 }
 

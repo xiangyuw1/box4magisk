@@ -265,6 +265,7 @@ save_runtime_config() {
         echo "MARK_VALUE=$MARK_VALUE"
         echo "MARK_VALUE6=$MARK_VALUE6"
         echo "USE_TPROXY=$USE_TPROXY"
+        echo "CORE_MODE=$CORE_MODE"
     } > "$runtime_file" || {
         log Warn "Failed to save runtime config to $runtime_file"
     }
@@ -1445,6 +1446,7 @@ cleanup_ipset() {
 
 detect_proxy_mode() {
     USE_TPROXY=0
+    CORE_MODE=0
     case "$PROXY_MODE" in
         0)
             if check_tproxy_support; then
@@ -1467,13 +1469,19 @@ detect_proxy_mode() {
             log Info "Using REDIRECT mode (forced by configuration)"
             ;;
         *)
-            log Debug "Using Core mode"
-            exit 0
+            log Info "Using Core mode (no transparent proxy rules)"
+            CORE_MODE=1
             ;;
     esac
 }
 
 start_proxy() {
+    if [ "$CORE_MODE" -eq 1 ]; then
+        log Info "Core mode: skipping transparent proxy rules setup"
+        save_runtime_config
+        return 0
+    fi
+
     log Info "Starting proxy setup..."
     if [ "$BYPASS_CN_IP" -eq 1 ]; then
         if ! check_kernel_feature "IP_SET" || ! check_kernel_feature "NETFILTER_XT_SET"; then
@@ -1512,11 +1520,36 @@ start_proxy() {
 
 stop_proxy() {
     log Info "Stopping proxy..."
+
+    # Save current USE_TPROXY before loading runtime config
+    local current_use_tproxy="$USE_TPROXY"
+    local current_core_mode="$CORE_MODE"
+
     if load_runtime_config; then
-        log Info "Using runtime config for cleanup"
+        log Info "Using runtime config for cleanup (USE_TPROXY=$USE_TPROXY)"
     else
-        log Warn "Using current config for cleanup (runtime config unavailable)"
+        log Warn "Runtime config unavailable, using current config for cleanup"
+        # If no runtime config, try to detect what was running
+        # This handles the case of first-time mode switch without prior runtime config
+        if [ "$current_core_mode" -eq 1 ]; then
+            # Current mode is core, but we might have old tproxy rules from previous mode
+            # Try to clean up both TPROXY and REDIRECT chains to be safe
+            log Warn "Core mode without runtime config, attempting cleanup of both TPROXY and REDIRECT chains"
+            cleanup_tproxy_chain4 >> /dev/null 2>&1
+            cleanup_routing4 >> /dev/null 2>&1
+            cleanup_tproxy_chain6 >> /dev/null 2>&1
+            cleanup_routing6 >> /dev/null 2>&1
+            cleanup_redirect_chain4 >> /dev/null 2>&1
+            cleanup_redirect_chain6 >> /dev/null 2>&1
+            cleanup_ipset
+            block_loopback_traffic disable
+            block_quic disable
+            [ "$DRY_RUN" -eq 1 ] || rm -f "$CONFIG_DIR/runtime_tproxy.conf" 2> /dev/null
+            log Info "Proxy stopped (cleanup of all possible chains)"
+            return 0
+        fi
     fi
+
     if [ "$USE_TPROXY" -eq 1 ]; then
         log Info "Cleaning up TPROXY chains"
         cleanup_tproxy_chain4
@@ -1905,6 +1938,7 @@ DRY_RUN=0
 VERBOSE=0
 CONFIG_DIR=""
 USE_TPROXY=0
+CORE_MODE=0
 
 parse_args "$@"
 
